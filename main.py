@@ -36,7 +36,8 @@ def start(message):
     else:
         bot_message = f'bulls: {answer[0]}, cows: {answer[1]}'
 
-    print(f'Шаг: {get_turns()}')
+    print(f'Шаг: {get_turns()}, Чат: {message.chat.id}, Сообщение: {message.text}')
+
     bot.reply_to(message, bot_message)
 
 bot.polling()
