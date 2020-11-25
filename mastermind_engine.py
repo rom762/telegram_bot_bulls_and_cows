@@ -10,7 +10,8 @@ data = {
 
 def make_number(silence=0):
     while True:
-        number = str(randint(1000, 10000))
+        #number = ''.join([randint(0, 10) for i in range(4)]
+        number = ''.join([str(randint(0, 9)) for i in range(4)])
         if len(set(number)) == len(number):
             #print(f'Загадано: {number}')
             return number
@@ -19,19 +20,15 @@ def get_turns():
     return _turns
 
 def check_number(user_message, chat_id):
-
-
-
-
     bulls = 0
     cows = 0
     data.setdefault(chat_id, dict())
     data[chat_id]['helps'] = data[chat_id].setdefault('helps', 0)
     data[chat_id]['turns'] = data[chat_id].setdefault('turns', -1) + 1
-    NUMBER = data[chat_id].setdefault('number', make_number())
+    number = data[chat_id].setdefault('number', make_number())
     pprint(data)
 
-    if user_message == NUMBER:
+    if user_message == number:
         # если угадал загадываем новое число
         data[chat_id]['number'] = make_number()
         return tuple(['win', _turns])
@@ -39,7 +36,7 @@ def check_number(user_message, chat_id):
     if user_message == 'help':
         if data[chat_id]['helps'] < 4:
             data[chat_id]['helps'] += 1
-            return tuple(['help', NUMBER[data[chat_id]['helps'] - 1]])
+            return tuple(['help', number[data[chat_id]['helps'] - 1]])
         else:
             data[chat_id]['number'] = make_number()
             return tuple(['win', _turns])
@@ -54,16 +51,16 @@ def check_number(user_message, chat_id):
         return tuple(['wrong', _turns])
 
     for order, digit in enumerate(user_message):
-        if digit in NUMBER:
-            if NUMBER[order] == digit:
+        if digit in number:
+            if number[order] == digit:
                 bulls += 1
             else:
                 cows += 1
 
     return tuple([bulls, cows])
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
 
     while True:
 

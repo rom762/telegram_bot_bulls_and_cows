@@ -15,16 +15,20 @@ chat_ids = ['test', 'test2', 'test3', 'test4', 'test']
 #     print(chat_id, mydata[chat_id])
 
 
-user_message = ['test', 'help', 'win', 1234, '1234']
-
-for each in user_message:
-    if str(each) == 'help':
-        print(f'{each} valid')
-    elif not str(each).isnumeric():
-        print(f'{str(each)} not valid')
-    elif 1000 < int(str(each)) < 1000:
-        print(f'{str(each)} valid')
-    else:
-        print(f'{str(each)} not valid')
+# user_message = ['test', 'help', 'win', 1234, '1234']
+#
+# for each in user_message:
+#     if str(each) == 'help':
+#         print(f'{each} valid')
+#     elif not str(each).isnumeric():
+#         print(f'{str(each)} not valid')
+#     elif 1000 < int(str(each)) < 1000:
+#         print(f'{str(each)} valid')
+#     else:
+#         print(f'{str(each)} not valid')
 
 #pprint(mydata)
+
+for i in range(10):
+    number = ''.join([str(randint(0, 9)) for i in range(4)])
+    print(i, number)
