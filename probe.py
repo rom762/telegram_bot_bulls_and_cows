@@ -1,16 +1,30 @@
+from pprint import pprint
 from random import randint
 
-number = ''
-
-def make_number(silence=0):
-    while True:
-        number = str(randint(1000, 10000))
-        print(number)
-
-        if len(set(number)) == len(number):
-            return number
+mydata = {}
 
 
-make_number()
+
+chat_ids = ['test', 'test2', 'test3', 'test4', 'test']
+
+# for chat_id in chat_ids:
+#     mydata.setdefault(chat_id, dict())
+#     mydata[chat_id].setdefault('helps', 0)
+#     mydata[chat_id].setdefault('turns', 0)
+#     mydata[chat_id].setdefault('number', randint(1000, 10000))
+#     print(chat_id, mydata[chat_id])
 
 
+user_message = ['test', 'help', 'win', 1234, '1234']
+
+for each in user_message:
+    if str(each) == 'help':
+        print(f'{each} valid')
+    elif not str(each).isnumeric():
+        print(f'{str(each)} not valid')
+    elif 1000 < int(str(each)) < 1000:
+        print(f'{str(each)} valid')
+    else:
+        print(f'{str(each)} not valid')
+
+#pprint(mydata)

@@ -3,7 +3,7 @@ import telebot
 import config
 from mastermind_engine import check_number, get_turns
 
-
+import oop_engine
 
 import logging
 
@@ -19,12 +19,12 @@ def send_welcome(message):
 
 @bot.message_handler(func=lambda m: True)
 def start(message):
-
     user_text = message.text
+    chat_id = message.chat.id
     #print(begin_text, type(begin_text), message.chat.id)
     print('=====================================')
 
-    answer = list(check_number(user_text))
+    answer = list(check_number(user_text, chat_id))
     if str(answer[0]) == 'wrong':
         bot_message = 'Wrong number'
 

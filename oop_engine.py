@@ -23,11 +23,12 @@ class Game():
 
         if user_number == self.__number:
             #тут надо убивать экземпляр класса
-            return tuple(['win', _turns])
+            del self.__number
+            return tuple(['win', self._turns])
 
         if user_number == 'help':
             self._helps += 1
-            return tuple(['help', NUMBER[self._helps - 1]])
+            return tuple(['help', self.__number[self._helps - 1]])
 
         if int(user_number) < 1000 or int(user_number) > 9999:
             return tuple(['wrong', self._turns])
@@ -44,20 +45,21 @@ class Game():
     # def __del__(self):
 
 
-chat1 = '12345'
-chat2 = '12346'
-chat3 = '12347'
+if __name__ == '__main__':
+    chat1 = '12345'
+    chat2 = '12346'
+    chat3 = '12347'
 
-user1 = Game(chat1)
-user2 = Game(chat2)
-user3 = Game(chat3)
+    user1 = Game(chat1)
+    user2 = Game(chat2)
+    user3 = Game(chat3)
 
-print(Game.games)
+    print(Game.games)
 
-for each in Game():
-    print(each.get_number())
-# print(user1.get_number())
-# print(user2.get_number())
+    for each in Game():
+        print(each.get_number())
+    # print(user1.get_number())
+    # print(user2.get_number())
 
 
 
