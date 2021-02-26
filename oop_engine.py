@@ -1,6 +1,7 @@
 from random import randint
 
-class Game():
+
+class Game:
 
     games = 0
 

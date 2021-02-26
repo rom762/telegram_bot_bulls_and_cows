@@ -8,6 +8,7 @@ data = {
     #chat_id {'helps': 0, 'turns' : 0, numer=''}
 }
 
+
 def make_number(silence=0):
     while True:
         #number = ''.join([randint(0, 10) for i in range(4)]
@@ -16,8 +17,10 @@ def make_number(silence=0):
             #print(f'Загадано: {number}')
             return number
 
+
 def get_turns():
     return _turns
+
 
 def check_number(user_message, chat_id):
     bulls = 0
