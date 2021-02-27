@@ -1,5 +1,7 @@
 import logging
 from pprint import pprint
+from random import choice
+
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram import ReplyKeyboardMarkup, KeyboardButton
 import config
@@ -11,9 +13,8 @@ TOKEN = config.TOKEN
 
 def main_keyboard():
     return ReplyKeyboardMarkup([
-         ['Загадывай!', 'Покажи котика'],
-    #     ['Курс доллара', 'Что с погодой'],
-    #     # [KeyboardButton('Мои координаты', request_location=True), KeyboardButton('Мои контакты', request_contact=True)]
+         ['Загадывай!', 'Сдаюсь!', 'Помощь'],
+
     ])
 
 
@@ -22,31 +23,40 @@ def greet_user(update, context):
     update.message.reply_text(f'Привет, давай сыграем в игру  {config.RULES_URL}', reply_markup=main_keyboard())
 
 
-def guess_number(update, context):
-    pass
+def help_user(update, context):
+    print('вызван help')
+    update.message.reply_text(f'Bulls это количество цифр в твоем ответе, которое ты поставил на правильное место.\n\n'
+                              f'Cows это количество цифр в твоем ответе, которые есть в загаданном числе, но ты их поставил не на то место\n\n'
+                              f'Например, загадано число 1234\n'
+                              f'Мы пишем боту 2574\n\n'
+                              f'2 - есть в загаданном числе 1234, но она стоит не на первом месте, а на втором. Значит она будет считаться в Cows\n'
+                              f'5 и 7 нет в загаданном числе - они не считаются\n\n'
+                              f'А вот 4 есть и мы поставили ее на правильное место\n'
+                              f'Она будет засчитана в Bulls\n\n'
+                              f'Ответ бота будет: Bulls: 1, Cows 1\n')
 
 
 def check_number_v2(message, number):
-    bulls = 0
-    cows = 0
+    bulls_cows = {'bulls': 0, 'cows': 0}
 
     if len(str(message)) > 4:
-        return f'too long string'
+        return 'too long string'
 
     elif not str(message).isnumeric():
         return 'wrong input'
 
     elif int(message) == int(number):
-        return f'win'
+        return 'win'
 
     else:
         for order, digit in enumerate(message):
             if digit in number:
                 if number[order] == digit:
-                    bulls += 1
+                    bulls_cows['bulls'] += 1
                 else:
-                    cows += 1
-        return (bulls, cows)
+                    bulls_cows['cows'] += 1
+
+        return bulls_cows
 
 
 def send_text(update, context):
@@ -56,76 +66,62 @@ def send_text(update, context):
 
     if message == 'Загадывай!':
         if context.user_data.get('number', 0):
-            update.message.reply_text(f'Для тебя уже загадано раньше {context.user_data["number"]}')
+            update.message.reply_text(f'Уже загадано', reply_markup=main_keyboard())
         else:
             number = make_number()
             context.user_data['number'] = number
             context.user_data['turns'] = 0
             print(f'Чат {chat_id}, Загадано {number}')
-            update.message.reply_text('Загадано, угадывай!')
+            update.message.reply_text('Загадано, угадывай!', reply_markup=main_keyboard())
+
+    elif message == 'Сдаюсь!':
+        if context.user_data:
+            reply = f'Ты сдался на {context.user_data.get("turns", 0)} попытке.\nБыло загадано число {context.user_data["number"]}'
+            context.user_data['number'] = ''
+            context.user_data['turns'] = 0
+        else:
+            reply = choice(['Не сдавайся!', 'Never give in!', 'Всё в ваших руках, поэтому не стоит их опускать'])
+        update.message.reply_text(reply, reply_markup=main_keyboard())
+
     else:
         number = context.user_data.get('number', make_number())
         reply = check_number_v2(message, number)
         context.user_data['turns'] += 1
         current_turns = context.user_data['turns']
+
         if reply == 'wrong input':
-            update.message.reply_text(reply)
+            update.message.reply_text('Wrong input: need 4 digits, but symbols were given.')
+
         elif reply == 'win':
             context.user_data['number'] = make_number()
             context.user_data['turns'] = 0
-            context.user_data['last_user_turn'] = ''
-            context.user_date['last_bulls_cows'] = ()
-            update.message.reply_text(f'Ты победил в {current_turns} попыток')
+            update.message.reply_text(f'Ты победил в {current_turns} попыток', reply_markup=main_keyboard())
+
         elif reply == 'too long string':
-            update.message.reply_text(reply)
-        elif isinstance(reply, tuple):
-            context.user_data['last_user_turn'] = message
-            context.user_data['last_bulls_cows'] = reply
-            reply_message = f'Bulls {reply[0]}, Cows {reply[1]}'
-            update.message.reply_text(reply_message)
+            update.message.reply_text('Too long string. Need 4 digits.')
+
+        elif isinstance(reply, dict):
+            # context.user_data['last_user_turn'] = message
+            # context.user_data['last_bulls_cows'] = reply
+            reply_message = f'Bulls {reply["bulls"]}, Cows {reply["cows"]}'
+            update.message.reply_text(reply_message, reply_markup=main_keyboard())
+
         else:
-            update.message.reply_text('something goes wrong!')
+            update.message.reply_text('something goes wrong! Please screenshot to @Rom762', reply_markup=main_keyboard())
 
 
 def main():
     my_bot = Updater(token=TOKEN, use_context=True)
     dp = my_bot.dispatcher
     dp.add_handler(CommandHandler('start', greet_user))
-    dp.add_handler(CommandHandler('guess', guess_number))
-
+    dp.add_handler(CommandHandler('help', help_user))
+    dp.add_handler(MessageHandler(Filters.regex('^(Помощь)$pip install psycopg2-binarypip install psycopg2-binarypip install psycopg2-binarypip install psycopg2-binary'), help_user))
     dp.add_handler(MessageHandler(Filters.text, send_text))
+
     logging.info('бот стартовал')
     my_bot.start_polling()
     my_bot.idle()
 
-
-# @bot.message_handler(commands=['start', 'help'])
-# def send_welcome(message):
-#     bot.reply_to(message, "Howdy, how are you doing?")
-#     pprint(message)
-#
-# @bot.message_handler(func=lambda m: True)
-# def start(message):
-#     user_text = message.text
-#     chat_id = message.chat.id
-#     #print(begin_text, type(begin_text), message.chat.id)
-#     print('=====================================')
-#
-#     answer = list(check_number(user_text, chat_id))
-#     if str(answer[0]) == 'wrong':
-#         bot_message = 'Wrong number'
-#
-#     elif str(answer[0]) == 'win':
-#         bot_message = 'You win!'
-#
-#     elif str(answer[0]) == 'help':
-#         bot_message = f'Help: {answer[1]}'
-#     else:
-#         bot_message = f'bulls: {answer[0]}, cows: {answer[1]}'
-#
-#     print(f'Шаг: {get_turns()}, Чат: {message.chat.id}, Сообщение: {message.text}')
-
-    # bot.reply_to(message, bot_message)
 
 if __name__ == '__main__':
     main()
