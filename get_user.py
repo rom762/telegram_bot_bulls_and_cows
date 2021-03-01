@@ -1,9 +1,14 @@
-from models import User
-from database import db_session
+from pprint import pprint
 
-user = User.query.first()
-print(f"""
-Name: {user.name}
-Salary: {user.salary}
-E-mail: {user.email}
-""")
+from models import MyUser
+from database import db_session, engine
+
+user = MyUser.query.first()
+print(type(user))
+print(user)
+
+# name = input('Firstname: ').strip().capitalize()
+
+result = db_session.execute(f'SELECT * FROM users WHERE users.first_name == Mark')
+print(*result)
+

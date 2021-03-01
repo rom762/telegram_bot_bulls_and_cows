@@ -1,25 +1,33 @@
+import sqlalchemy
+
+import config
+import datetime
 import logging
 from pprint import pprint
-from random import choice
+from random import choice, randint
+from telegram import ReplyKeyboardMarkup, Chat
+from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
+from models import MyUser
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-from telegram import ReplyKeyboardMarkup, KeyboardButton
-import config
-from mastermind_engine import check_number, get_turns, make_number
+# logging.basicConfig(filename='bulls_and_cows_bot.log', level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+)
 
-logging.basicConfig(filename='bot.log', level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 TOKEN = config.TOKEN
 
 
 def main_keyboard():
     return ReplyKeyboardMarkup([
          ['Загадывай!', 'Сдаюсь!', 'Помощь'],
-
-    ])
+    ], resize_keyboard=True)
 
 
 def greet_user(update, context):
     print('вызван start')
+    pprint(context)
     update.message.reply_text(f'Привет, давай сыграем в игру  {config.RULES_URL}', reply_markup=main_keyboard())
 
 
@@ -59,10 +67,19 @@ def check_number_v2(message, number):
         return bulls_cows
 
 
+def make_number():
+    while True:
+        number = ''.join([str(randint(0, 9)) for i in range(4)])
+        if len(set(number)) == len(number):
+            return number
+
+
 def send_text(update, context):
-    print('вызван send text')
+
     message = update.message.text
+
     chat_id = update.effective_chat.id
+    print(f'{chat_id} вызван send text: {message}')
 
     if message == 'Загадывай!':
         if context.user_data.get('number', 0):
@@ -76,9 +93,19 @@ def send_text(update, context):
 
     elif message == 'Сдаюсь!':
         if context.user_data:
-            reply = f'Ты сдался на {context.user_data.get("turns", 0)} попытке.\nБыло загадано число {context.user_data["number"]}'
-            context.user_data['number'] = ''
-            context.user_data['turns'] = 0
+            reply = f'Ты сдался на {context.user_data.get("turns", 0)} попытке.\n' \
+                    f'Было загадано число {context.user_data["number"]}'
+            # тут нужно записать попытку в DB
+            # получить данные которые писать
+            # проверить а нет ли такого уже в базе
+            # если есть записать в turn + 1
+            # если нет создать пользователя
+            # давай пока без проверок просто записываем.
+            context.user_data.clear()
+            # if update_user_score(update, context):
+            #     context.user_data.clear()
+            # else:
+            #     raise ValueError('something wrong!')
         else:
             reply = choice(['Не сдавайся!', 'Never give in!', 'Всё в ваших руках, поэтому не стоит их опускать'])
         update.message.reply_text(reply, reply_markup=main_keyboard())
@@ -86,8 +113,7 @@ def send_text(update, context):
     else:
         number = context.user_data.get('number', make_number())
         reply = check_number_v2(message, number)
-        context.user_data['turns'] += 1
-        current_turns = context.user_data['turns']
+        context.user_data['turns'] = context.user_data.setdefault('turns', 0) + 1
 
         if reply == 'wrong input':
             update.message.reply_text('Wrong input: need 4 digits, but symbols were given.')
@@ -95,7 +121,8 @@ def send_text(update, context):
         elif reply == 'win':
             context.user_data['number'] = make_number()
             context.user_data['turns'] = 0
-            update.message.reply_text(f'Ты победил в {current_turns} попыток', reply_markup=main_keyboard())
+            update.message.reply_text(f'Ты победил в {context.user_data["turns"]} попыток', reply_markup=main_keyboard())
+            # тут будем записывать в базу никнэйм и количество turn
 
         elif reply == 'too long string':
             update.message.reply_text('Too long string. Need 4 digits.')
@@ -110,17 +137,28 @@ def send_text(update, context):
             update.message.reply_text('something goes wrong! Please screenshot to @Rom762', reply_markup=main_keyboard())
 
 
+def update_user_score(update, context):
+    # id, first_name, last_name, nickname, email, games, best_turns):
+    try:
+        user = MyUser(first_name='William', last_name='Clinton', nickname='@willy', email='bill.clinton@usa.gov', games=1, best_turns=context.user_data['turns'])
+        user.add_user()
+        return True
+    except Exception as exp:
+        print(exp)
+        return False
+
+
 def main():
-    my_bot = Updater(token=TOKEN, use_context=True)
-    dp = my_bot.dispatcher
+    bot = Updater(token=TOKEN, use_context=True)
+    dp = bot.dispatcher
     dp.add_handler(CommandHandler('start', greet_user))
     dp.add_handler(CommandHandler('help', help_user))
-    dp.add_handler(MessageHandler(Filters.regex('^(Помощь)$pip install psycopg2-binarypip install psycopg2-binarypip install psycopg2-binarypip install psycopg2-binary'), help_user))
+    dp.add_handler(MessageHandler(Filters.regex('^(Помощь)$'), help_user))
     dp.add_handler(MessageHandler(Filters.text, send_text))
 
-    logging.info('бот стартовал')
-    my_bot.start_polling()
-    my_bot.idle()
+    logging.info(f'бот стартовал {datetime.datetime.now()}')
+    bot.start_polling()
+    bot.idle()
 
 
 if __name__ == '__main__':

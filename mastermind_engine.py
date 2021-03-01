@@ -9,15 +9,6 @@ data = {
 }
 
 
-def make_number(silence=0):
-    while True:
-        #number = ''.join([randint(0, 10) for i in range(4)]
-        number = ''.join([str(randint(0, 9)) for i in range(4)])
-        if len(set(number)) == len(number):
-            #print(f'Загадано: {number}')
-            return number
-
-
 def get_turns():
     return _turns
 
