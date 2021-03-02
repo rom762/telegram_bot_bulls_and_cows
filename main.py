@@ -73,7 +73,7 @@ def check_number_v2(message, number):
 def make_number():
     while True:
         number = ''.join([str(randint(0, 9)) for i in range(4)])
-        if len(set(number)) == len(number):
+        if (len(set(number)) == len(number)) and (int(number) > 999):
             return number
 
 
@@ -95,7 +95,7 @@ def send_text(update, context):
             update.message.reply_text('Загадано, угадывай!', reply_markup=main_keyboard())
 
     elif message == 'Сдаюсь!':
-        if context.user_data:
+        if context.user_data.get('number', 0):
             reply = f'Ты сдался на {context.user_data.get("turns", 0)} попытке.\n' \
                     f'Было загадано число {context.user_data["number"]}'
             # тут нужно записать попытку в DB
@@ -111,20 +111,22 @@ def send_text(update, context):
             #     raise ValueError('something wrong!')
         else:
             reply = choice(['Не сдавайся!', 'Never give in!', 'Всё в ваших руках, поэтому не стоит их опускать'])
+
         update.message.reply_text(reply, reply_markup=main_keyboard())
 
     else:
         number = context.user_data.get('number', make_number())
-        reply = check_number_v2(message, number)
         context.user_data['turns'] = context.user_data.setdefault('turns', 0) + 1
+        reply = check_number_v2(message, number)
+
+        print(f'Чат: {chat_id}, попытка {context.user_data["turns"]}')
 
         if reply == 'wrong input':
             update.message.reply_text('Wrong input: need 4 digits, but symbols were given.')
 
         elif reply == 'win':
-            context.user_data['number'] = make_number()
-            context.user_data['turns'] = 0
             update.message.reply_text(f'Ты победил в {context.user_data["turns"]} попыток', reply_markup=main_keyboard())
+            context.user_data.clear()
             # тут будем записывать в базу никнэйм и количество turn
 
         elif reply == 'too long string':
