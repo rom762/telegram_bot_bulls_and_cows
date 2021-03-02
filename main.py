@@ -11,7 +11,7 @@ from models import MyUser
 
 # logging.basicConfig(filename='bulls_and_cows_bot.log', level=logging.INFO)
 logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO, filename='bulls_and_cows_bot.log'
 )
 
 logger = logging.getLogger(__name__)
@@ -49,6 +49,9 @@ def check_number_v2(message, number):
 
     if len(str(message)) > 4:
         return 'too long string'
+
+    elif len(str(message)) < 4:
+        return 'too short string'
 
     elif not str(message).isnumeric():
         return 'wrong input'
@@ -126,6 +129,9 @@ def send_text(update, context):
 
         elif reply == 'too long string':
             update.message.reply_text('Too long string. Need 4 digits.')
+
+        elif reply == 'too short string':
+            update.message.reply_text('Too short string. Need 4 digits.')
 
         elif isinstance(reply, dict):
             # context.user_data['last_user_turn'] = message
