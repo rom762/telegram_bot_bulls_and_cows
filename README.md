@@ -1,4 +1,4 @@
-# telegram_bot_bulls_and_cows
+# Telegram Bot "BullsAndCows"
 
 Реализация логической игры ["Быки и Коровы"](https://ru.wikipedia.org/wiki/%D0%91%D1%8B%D0%BA%D0%B8_%D0%B8_%D0%BA%D0%BE%D1%80%D0%BE%D0%B2%D1%8B) в телеграм боте:
 
