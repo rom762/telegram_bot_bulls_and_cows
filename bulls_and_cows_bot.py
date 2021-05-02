@@ -7,7 +7,7 @@ from pprint import pprint
 from random import choice, randint
 from telegram import ReplyKeyboardMarkup, Chat
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
-from models import MyUser
+
 
 # logging.basicConfig(filename='bulls_and_cows_bot.log', level=logging.INFO)
 logging.basicConfig(
