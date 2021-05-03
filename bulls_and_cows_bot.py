@@ -21,7 +21,7 @@ TOKEN = config.TOKEN
 
 def main_keyboard():
     return ReplyKeyboardMarkup([
-         ['Загадывай!', 'Сдаюсь!', 'Помощь'],
+         ['Загадывай!', 'Сдаюсь!', 'Подскажи!', 'Об игре'],
     ], resize_keyboard=True)
 
 
@@ -80,7 +80,6 @@ def make_number():
 def send_text(update, context):
 
     message = update.message.text
-
     chat_id = update.effective_chat.id
     print(f'{chat_id} вызван send text: {message}')
 
@@ -91,11 +90,12 @@ def send_text(update, context):
             number = make_number()
             context.user_data['number'] = number
             context.user_data['turns'] = 0
+            context.user_data['helps'] = 0
             print(f'Чат {chat_id}, Загадано {number}')
             update.message.reply_text('Загадано, угадывай!', reply_markup=main_keyboard())
 
     elif message == 'Сдаюсь!':
-        if context.user_data.get('number', 0):
+        if context.user_data.get('number', False):
             reply = f'Ты сдался на {context.user_data.get("turns", 0)} попытке.\n' \
                     f'Было загадано число {context.user_data["number"]}'
             # тут нужно записать попытку в DB
@@ -113,6 +113,36 @@ def send_text(update, context):
             reply = choice(['Не сдавайся!', 'Never give in!', 'Всё в ваших руках, поэтому не стоит их опускать'])
 
         update.message.reply_text(reply, reply_markup=main_keyboard())
+
+    elif message == 'Подскажи!':
+
+        current_number = context.user_data.setdefault('number', make_number())
+        helps = context.user_data.setdefault('helps', 0)
+        turns = context.user_data.setdefault('turns', 0)
+
+        print(f'current number: {current_number}')
+        print(f'current helps: {helps}')
+        print(f'current turns: {turns}')
+        print(f'1 {context.user_data["helps"]}')
+        print(f'2 {context.user_data["number"]}')
+
+        if helps < 3:
+            context.user_data['helps'] += 1
+            hint = str(current_number)[helps]
+            print(f'current hint is: {hint}')
+            reply = f'На {context.user_data["helps"]} месте стоит цифра {hint}'
+
+        else:
+
+            reply = f'На последнем месте стоит цифра {str(current_number)[-1]}\n' \
+                    f'Ну ок. Ты победил. C 4 подсказками за {turns} попыток.\n' \
+                    f'Было загадано: {current_number}'
+            context.user_data.clear()
+
+        update.message.reply_text(reply, reply_markup=main_keyboard())
+
+    elif message == 'Об игре':
+        return help_user(update, context)
 
     else:
         number = context.user_data.get('number', make_number())
