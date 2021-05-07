@@ -1,61 +1,82 @@
 import config
 import datetime
 import logging
-from pprint import pprint
 from random import choice, randint
 from telegram import ReplyKeyboardMarkup, Chat
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
 
-
-# logging.basicConfig(filename='bulls_and_cows_bot.log', level=logging.INFO)
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO, filename='bulls_and_cows_bot.log'
-)
-
-logger = logging.getLogger(__name__)
-
 TOKEN = config.TOKEN
+
+log = logging.getLogger(__name__)
+
+
+def configure_logging():
+    """
+    configure logger
+    :return:
+    """
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
+    stream_handler.setLevel(logging.DEBUG)
+    log.addHandler(stream_handler)
+
+    file_handler = logging.FileHandler("bot.log", encoding='UTF-8')
+    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    file_handler.setLevel(logging.DEBUG)
+    log.addHandler(file_handler)
+
+    log.setLevel(logging.DEBUG)
 
 
 def main_keyboard():
+    """
+    generate inline-keybord
+    :return: keyboard
+    """
     return ReplyKeyboardMarkup([
          ['Загадывай!', 'Сдаюсь!', 'Подскажи!', 'Об игре'],
     ], resize_keyboard=True)
 
 
 def greet_user(update, context):
-    print('вызван start')
-    pprint(context)
+    log.info('вызван start')
     update.message.reply_text(f'Привет, давай сыграем в игру  {config.RULES_URL}', reply_markup=main_keyboard())
 
 
-def help_user(update, context):
-    print('вызван help')
-    update.message.reply_text(f'Bulls это количество цифр в твоем ответе, которое ты поставил на правильное место.\n\n'
-                              f'Cows это количество цифр в твоем ответе, которые есть в загаданном числе, но ты их поставил не на то место\n\n'
-                              f'Например, загадано число 1234\n'
-                              f'Мы пишем боту 2574\n\n'
-                              f'2 - есть в загаданном числе 1234, но она стоит не на первом месте, а на втором. Значит она будет считаться в Cows\n'
-                              f'5 и 7 нет в загаданном числе - они не считаются\n\n'
-                              f'А вот 4 есть и мы поставили ее на правильное место\n'
-                              f'Она будет засчитана в Bulls\n\n'
-                              f'Ответ бота будет: Bulls: 1, Cows 1\n')
+def help_user():
+    log.info('вызван help')
+
+    reply = (f'Bulls это количество цифр в твоем ответе, которое ты поставил на правильное место.\n\n'
+              f'Cows это количество цифр в твоем ответе, которые есть в загаданном числе, но ты их поставил не на то место\n\n'
+              f'Например, загадано число 1234\n'
+              f'Мы пишем боту 2574\n\n'
+              f'2 - есть в загаданном числе 1234, но она стоит не на первом месте, а на втором. Значит она будет считаться в Cows\n'
+              f'5 и 7 нет в загаданном числе - они не считаются\n\n'
+              f'А вот 4 есть и мы поставили ее на правильное место\n'
+              f'Она будет засчитана в Bulls\n\n'
+              f'Ответ бота будет: Bulls: 1, Cows 1\n')
+
+    return reply
 
 
-def check_number_v2(message, number):
+def check_number_v2(update, context):
+    message = update.message.text
+    number = context.user_data.setdefault('number', make_number(context=context))
     bulls_cows = {'bulls': 0, 'cows': 0}
 
     if len(str(message)) > 4:
-        return 'too long string'
+        return 'Too long string. Need 4 digits.'
 
     elif len(str(message)) < 4:
-        return 'too short string'
+        return 'Too short string. Need 4 digits.'
 
     elif not str(message).isnumeric():
-        return 'wrong input'
+        return 'Wrong input: need 4 digits, but symbols were given.'
 
     elif int(message) == int(number):
-        return 'win'
+        reply = f'Ты победил в {context.user_data["turns"]} попыток'
+        context.user_data.clear()
+        return reply
 
     else:
         for order, digit in enumerate(message):
@@ -64,106 +85,75 @@ def check_number_v2(message, number):
                     bulls_cows['bulls'] += 1
                 else:
                     bulls_cows['cows'] += 1
+        return f'Bulls {bulls_cows["bulls"]}, Cows {bulls_cows["cows"]}'
 
-        return bulls_cows
 
+def make_number(context):
 
-def make_number():
-    while True:
-        number = ''.join([str(randint(0, 9)) for i in range(4)])
-        if (len(set(number)) == len(number)) and (int(number) > 999):
-            return number
+    if not context.user_data.get('number', 0):
+        while True:
+            number = ''.join([str(randint(0, 9)) for i in range(4)])
+            if (len(set(number)) == len(number)) and (int(number) > 999):
+                log.info(f'made right number: {number}')
+                context.user_data['number'] = number
+                break
+            else:
+                log.info(f'made wrong number: {number}')
+    return context.user_data.get('number')
 
 
 def send_text(update, context):
 
     message = update.message.text
     chat_id = update.effective_chat.id
-    print(f'{chat_id} вызван send text: {message}')
+
+    log.info(f'{chat_id} вызван send text: {message}')
+    for key, value in context.user_data.items():
+        log.debug(f'{key}: {value}')
+
+    number = make_number(context)
+    turns = context.user_data.setdefault('turns', 0)
+    helps = context.user_data.setdefault('helps', 0)
 
     if message == 'Загадывай!':
-        if context.user_data.get('number', 0):
-            update.message.reply_text(f'Уже загадано', reply_markup=main_keyboard())
-        else:
-            number = make_number()
-            context.user_data['number'] = number
-            context.user_data['turns'] = 0
-            context.user_data['helps'] = 0
-            print(f'Чат {chat_id}, Загадано {number}')
-            update.message.reply_text('Загадано, угадывай!', reply_markup=main_keyboard())
+        log.info(f'Чат {chat_id}, Загадано {number}')
+        reply = 'Загадано, угадывай!'
 
     elif message == 'Сдаюсь!':
-        if context.user_data.get('number', False):
-            reply = f'Ты сдался на {context.user_data.get("turns", 0)} попытке.\n' \
-                    f'Было загадано число {context.user_data["number"]}'
+        if turns > 0:
+            reply = f'Ты сдался на {turns} попытке.\n' \
+                    f'Было загадано число {number}'
             context.user_data.clear()
         else:
             reply = choice(['Не сдавайся!', 'Never give in!', 'Всё в ваших руках, поэтому не стоит их опускать'])
 
-        update.message.reply_text(reply, reply_markup=main_keyboard())
-
     elif message == 'Подскажи!':
-        current_number = context.user_data.setdefault('number', make_number())
-        helps = context.user_data.setdefault('helps', 0)
-        turns = context.user_data.setdefault('turns', 0)
-
-        if helps < 3:
-            context.user_data['helps'] += 1
-            hint = str(current_number)[helps]
-            print(f'current hint is: {hint}')
-            reply = f'На {context.user_data["helps"]} месте стоит цифра {hint}'
-
-        else:
-            reply = f'На последнем месте стоит цифра {str(current_number)[-1]}\n' \
-                    f'Ну ок. Ты победил. C 4 подсказками за {turns} попыток.\n' \
-                    f'Было загадано: {current_number}'
-            context.user_data.clear()
-
-        update.message.reply_text(reply, reply_markup=main_keyboard())
+        reply = check_helps(context, number, helps, turns)
 
     elif message == 'Об игре':
-        return help_user(update, context)
+        reply = help_user()
 
     else:
-        number = context.user_data.get('number', make_number())
-        context.user_data['turns'] = context.user_data.setdefault('turns', 0) + 1
-        reply = check_number_v2(message, number)
+        log.info(f'Чат: {chat_id}, попытка {turns}: {message}')
+        context.user_data['turns'] += 1
+        reply = check_number_v2(update, context)
 
-        print(f'Чат: {chat_id}, попытка {context.user_data["turns"]}')
-
-        if reply == 'wrong input':
-            update.message.reply_text('Wrong input: need 4 digits, but symbols were given.')
-
-        elif reply == 'win':
-            update.message.reply_text(f'Ты победил в {context.user_data["turns"]} попыток', reply_markup=main_keyboard())
-            context.user_data.clear()
-            # тут будем записывать в базу никнэйм и количество turn
-
-        elif reply == 'too long string':
-            update.message.reply_text('Too long string. Need 4 digits.')
-
-        elif reply == 'too short string':
-            update.message.reply_text('Too short string. Need 4 digits.')
-
-        elif isinstance(reply, dict):
-            # context.user_data['last_user_turn'] = message
-            # context.user_data['last_bulls_cows'] = reply
-            reply_message = f'Bulls {reply["bulls"]}, Cows {reply["cows"]}'
-            update.message.reply_text(reply_message, reply_markup=main_keyboard())
-
-        else:
-            update.message.reply_text('something goes wrong! Please screenshot to @Rom762', reply_markup=main_keyboard())
+    update.message.reply_text(reply, reply_markup=main_keyboard())
 
 
-def update_user_score(update, context):
-    # id, first_name, last_name, nickname, email, games, best_turns):
-    try:
-        user = MyUser(first_name='William', last_name='Clinton', nickname='@willy', email='bill.clinton@usa.gov', games=1, best_turns=context.user_data['turns'])
-        user.add_user()
-        return True
-    except Exception as exp:
-        print(exp)
-        return False
+def check_helps(context, number, helps, turns):
+    if helps < 3:
+        context.user_data['helps'] += 1
+        hint = str(number)[helps]
+        log.info(f'current hint is: {hint}')
+        reply = f'На {context.user_data["helps"]} месте стоит цифра {hint}'
+
+    else:
+        reply = f'На последнем месте стоит цифра {str(number)[-1]}\n' \
+                f'Ну ок. Ты победил. C 4 подсказками за {turns} попыток.\n' \
+                f'Было загадано: {number}'
+        context.user_data.clear()
+    return reply
 
 
 def main():
@@ -174,12 +164,13 @@ def main():
     dp.add_handler(MessageHandler(Filters.regex('^(Помощь)$'), help_user))
     dp.add_handler(MessageHandler(Filters.text, send_text))
 
-    logging.info(f'бот стартовал {datetime.datetime.now()}')
+    log.info(f'бот стартовал {datetime.datetime.now()}')
     bot.start_polling()
     bot.idle()
 
 
 if __name__ == '__main__':
+    configure_logging()
     main()
 
 
